@@ -1,0 +1,544 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #6C6C6C;
+    color: #000000;
+    font-family: 'Press Start 2P', cursive;
+    image-rendering: pixelated;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 10px;
+    background-color: #F5F5DC; /* 复古米白 */
+    border: 2px solid #000000;
+    border-radius: 0;
+    box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.5);
+}
+
+header {
+    text-align: center;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 2px solid #000000;
+    background-color: #dddddd;
+    position: relative;
+}
+
+header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 15px;
+    background: repeating-linear-gradient(
+        to right,
+        #000000,
+        #000000 2px,
+        #dddddd 2px,
+        #dddddd 10px
+    );
+}
+
+h1 {
+    font-size: 18px;
+    letter-spacing: 1px;
+    color: #000000;
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+
+.pixel-text {
+    image-rendering: pixelated;
+    line-height: 1.5;
+}
+
+/* 窗口关闭按钮 */
+.close-button {
+    position: absolute;
+    left: 10px;
+    top: 4px;
+    width: 12px;
+    height: 12px;
+    background-color: #000000;
+    border: 1px solid #666666;
+    cursor: pointer;
+    z-index: 10;
+}
+
+/* Mac风格菜单栏 */
+.menu-bar {
+    display: flex;
+    background-color: #ffffff;
+    border-bottom: 2px solid #000000;
+    padding: 5px 0;
+    margin-bottom: 10px;
+}
+
+.menu-item {
+    padding: 0 15px;
+    font-size: 10px;
+    border-right: 1px solid #aaaaaa;
+    position: relative;
+    cursor: pointer;
+}
+
+.menu-item:first-child {
+    padding-left: 10px;
+}
+
+.menu-item:last-child {
+    border-right: none;
+}
+
+.menu-item.open::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    background: #dddddd;
+    border: 2px solid #000000;
+    z-index: 100;
+}
+
+.menu-item:first-child.open::after {
+    content: "New\nOpen\nSave\nPrint\nQuit";
+    padding: 5px;
+    white-space: pre;
+    font-size: 8px;
+    line-height: 1.5;
+}
+
+/* 主内容区域 */
+.main-content {
+    display: flex;
+    margin-bottom: 10px;
+    min-height: 500px;
+}
+
+/* 左侧工具栏 - 240px宽度 */
+.toolbar {
+    width: 240px;
+    background-color: #dddddd;
+    border: 2px solid #000000;
+    margin-right: 10px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+    max-height: 500px;
+}
+
+.tool-group {
+    margin-bottom: 15px;
+    border-bottom: 1px solid #999999;
+    padding-bottom: 10px;
+}
+
+.tool-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.tool-group-title {
+    font-size: 12px;
+    margin-bottom: 8px;
+    text-align: center;
+    border-bottom: 1px dotted #999999;
+    padding-bottom: 5px;
+}
+
+.tool {
+    width: 50px;
+    height: 30px;
+    margin: 5px;
+    background-color: #bbbbbb;
+    border: 2px solid #000000;
+    cursor: pointer;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.tool:hover {
+    background-color: #ffffff;
+}
+
+.tool.active {
+    background-color: #ffffff;
+    box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* 颜色选择器 */
+.color-picker {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.color {
+    width: 30px;
+    height: 30px;
+    margin: 4px;
+    border: 2px solid #000000;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.color:hover {
+    transform: scale(1.1);
+}
+
+.color.active {
+    border: 2px solid #ff0000;
+}
+
+/* 像素化滑块 */
+.slider-container {
+    margin: 10px 0;
+    text-align: center;
+}
+
+.pixel-slider {
+    width: 90%;
+    height: 4px;
+    -webkit-appearance: none;
+    background: #999999;
+    outline: none;
+    margin: 10px 0;
+}
+
+.pixel-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #ffffff;
+    border: 2px solid #000000;
+    cursor: pointer;
+}
+
+.slider-value {
+    font-size: 10px;
+    margin-top: 5px;
+}
+
+.history-steps {
+    text-align: center;
+    font-size: 10px;
+    margin-top: 5px;
+}
+
+/* 中央画布区域 */
+.canvas-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid #000000;
+    background-color: #dddddd;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.canvas-controls {
+    display: flex;
+    padding: 5px;
+    background-color: #bbbbbb;
+    border-bottom: 2px solid #000000;
+    align-items: center;
+}
+
+.zoom-button {
+    width: 30px;
+    height: 30px;
+    background-color: #dddddd;
+    border: 2px solid #000000;
+    margin: 0 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.zoom-level {
+    margin: 0 10px;
+    font-size: 12px;
+}
+
+.export-button {
+    width: 32px;
+    height: 32px;
+    background-color: #bbbbbb;
+    border: 2px solid #000000;
+    margin: 0;
+    margin-left: auto;
+    margin-right: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.export-button:hover {
+    background-color: #ffffff;
+}
+
+.clear-button {
+    width: 32px;
+    height: 32px;
+    background-color: #bbbbbb;
+    border: 2px solid #000000;
+    margin: 0;
+    margin-right: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.clear-button:hover {
+    background-color: #ffdddd;
+}
+
+.upload-button {
+    padding: 5px 10px;
+    background-color: #bbbbbb;
+    border: 2px solid #000000;
+    margin-right: 5px;
+    cursor: pointer;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.canvas-container {
+    flex: 1;
+    position: relative;
+    overflow: auto;
+    background-color: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#pixelCanvas {
+    display: block;
+    background-color: #ffffff;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border: 1px solid #000000;
+}
+
+.canvas-guides {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.canvas-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 10px;
+    padding: 5px;
+    background-color: #ffffff;
+    border: 1px solid #999999;
+}
+
+.rotation-hint {
+    color: #0066CC;
+    font-weight: bold;
+    animation: blink 1s infinite;
+    margin-left: 10px;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* 底部贴纸库 - 高度180px */
+.sticker-library {
+    height: 180px;
+    border: 2px solid #000000;
+    background-color: #dddddd;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.sticker-tabs {
+    display: flex;
+    background-color: #bbbbbb;
+    border-bottom: 2px solid #000000;
+}
+
+.sticker-tab {
+    padding: 5px 15px;
+    font-size: 10px;
+    cursor: pointer;
+    border-right: 1px solid #000000;
+    background-color: #dddddd;
+}
+
+.sticker-tab.active {
+    background-color: #ffffff;
+    border-bottom: 2px solid #ffffff;
+    margin-bottom: -2px;
+}
+
+.sticker-container {
+    flex: 1;
+    background-color: #ffffff;
+    overflow-y: hidden;
+    position: relative;
+}
+
+.sticker-group {
+    display: none;
+    flex-wrap: wrap;
+    padding: 10px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.sticker-group.active {
+    display: flex;
+}
+
+.sticker-upload {
+    width: 64px;
+    height: 64px;
+    border: 2px dashed #999999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    margin: 5px;
+    font-size: 24px;
+    color: #999999;
+}
+
+.sticker-upload:hover {
+    border-color: #000000;
+    color: #000000;
+}
+
+.sticker {
+    width: 64px;
+    height: 64px;
+    margin: 5px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.sticker:hover {
+    border-color: #0066CC;
+}
+
+.sticker.active {
+    border-color: #0066CC;
+    background-color: #e5e5ff;
+}
+
+/* 贴纸加载状态样式 */
+.sticker.loading {
+    position: relative;
+    background-color: #f0f0f0;
+    border-radius: 6px;
+    animation: sticker-loading 1.5s infinite ease-in-out;
+}
+
+.sticker.loading::after {
+    content: "⌛";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+    color: #888;
+}
+
+.sticker.loading-error {
+    background-color: #ffe0e0;
+    border: 1px dashed #ff5252;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes sticker-loading {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+footer {
+    text-align: center;
+    padding: 10px;
+    font-size: 10px;
+    color: #000000;
+    border-top: 2px solid #000000;
+}
+
+/* 响应式调整 */
+@media (max-width: 800px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    .toolbar {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+        max-height: 300px;
+    }
+    
+    .sticker-library {
+        height: 240px;
+    }
+}
+
+/* 动画效果 */
+@keyframes mac-click {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+.tool:active, .color:active, .sticker:active, .zoom-button:active, .upload-button:active, .export-button:active, .clear-button:active {
+    transform: translateY(2px);
+    box-shadow: 0px 0px 0 rgba(0, 0, 0, 0.3);
+    animation: mac-click 0.15s;
+}
+
+header.closing {
+    animation: mac-close 0.5s forwards;
+}
+
+@keyframes mac-close {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.9); opacity: 0; }
+} 

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelCanvas 1984</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Mac风格菜单栏 -->
+        <div class="menu-bar">
+            <div class="menu-item">🍎 File</div>
+            <div class="menu-item">Edit</div>
+            <div class="menu-item">View</div>
+            <div class="menu-item">Tools</div>
+            <div class="menu-item">Pixel</div>
+            <div class="menu-item">Help</div>
+        </div>
+        
+        <header>
+            <div class="close-button"></div>
+            <h1 class="pixel-text">PixelCanvas 1984</h1>
+        </header>
+        
+        <div class="main-content">
+            <!-- 左侧工具栏 - 240px宽 -->
+            <div class="toolbar">
+                <!-- 画笔工具 -->
+                <div class="tool-group">
+                    <h3 class="tool-group-title">Brushes</h3>
+                    <div class="tool" data-size="1">1px</div>
+                    <div class="tool" data-size="2">2px</div>
+                    <div class="tool" data-size="4">4px</div>
+                </div>
+                
+                <!-- 工具组 -->
+                <div class="tool-group">
+                    <h3 class="tool-group-title">Tools</h3>
+                    <div class="tool" data-tool="pencil">✏️</div>
+                    <div class="tool" data-tool="eraser">🧽</div>
+                    <div class="tool" data-tool="fill">🖌️</div>
+                    <div class="tool" data-tool="select">🔍</div>
+                </div>
+                
+                <!-- 颜色选择器 -->
+                <div class="tool-group">
+                    <h3 class="tool-group-title">Colors</h3>
+                    <div class="color-picker">
+                        <div class="color" style="background-color: #000000;"></div>
+                        <div class="color" style="background-color: #FFFFFF;"></div>
+                        <div class="color" style="background-color: #FF0000;"></div>
+                        <div class="color" style="background-color: #00FF00;"></div>
+                        <div class="color" style="background-color: #0000FF;"></div>
+                        <div class="color" style="background-color: #FFFF00;"></div>
+                        <div class="color" style="background-color: #FF00FF;"></div>
+                        <div class="color" style="background-color: #00FFFF;"></div>
+                    </div>
+                </div>
+                
+                <!-- 像素化强度 -->
+                <div class="tool-group">
+                    <h3 class="tool-group-title">Pixelate</h3>
+                    <div class="slider-container">
+                        <input type="range" min="2" max="8" step="2" value="8" class="pixel-slider" id="pixelSize">
+                        <div class="slider-value">8x8</div>
+                    </div>
+                </div>
+                
+                <!-- 历史记录 -->
+                <div class="tool-group">
+                    <h3 class="tool-group-title">History</h3>
+                    <div class="tool" data-tool="undo">↩️</div>
+                    <div class="tool" data-tool="redo">↪️</div>
+                    <div class="history-steps">0/10</div>
+                </div>
+            </div>
+            
+            <!-- 中央画布区 -->
+            <div class="canvas-area">
+                <div class="canvas-controls">
+                    <button class="zoom-button" data-zoom="out">-</button>
+                    <span class="zoom-level">100%</span>
+                    <button class="zoom-button" data-zoom="in">+</button>
+                    <button class="export-button">💾</button>
+                    <button class="upload-button">Upload Image</button>
+                    <input type="file" id="imageUpload" accept="image/jpeg, image/png" hidden>
+                </div>
+                
+                <div class="canvas-container">
+                    <canvas id="pixelCanvas" width="600" height="400"></canvas>
+                    <div class="canvas-guides" id="canvasGuides"></div>
+                </div>
+                
+                <div class="canvas-info">
+                    <span class="cursor-position">X: 0 Y: 0</span>
+                    <span class="image-size">600x400</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 底部贴纸库 - 高度180px -->
+        <div class="sticker-library">
+            <div class="sticker-tabs">
+                <div class="sticker-tab active" data-category="mac">Mac Icons</div>
+                <div class="sticker-tab" data-category="emoji">Emoji</div>
+                <div class="sticker-tab" data-category="custom">Custom</div>
+            </div>
+            
+            <div class="sticker-container">
+                <!-- Mac图标贴纸 -->
+                <div class="sticker-group active" data-category="mac">
+                    <!-- 这里将动态添加贴纸 -->
+                </div>
+                
+                <!-- 表情符号贴纸 -->
+                <div class="sticker-group" data-category="emoji">
+                    <!-- 这里将动态添加贴纸 -->
+                </div>
+                
+                </div>
+                
+                <!-- 自定义贴纸 -->
+                <div class="sticker-group" data-category="custom">
+                    <div class="sticker-upload">
+                        <span>+</span>
+                        <input type="file" id="stickerUpload" accept="image/png" hidden>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p class="pixel-text">© 2023 PixelCanvas 1984 - A Tribute to Macintosh</p>
+        </footer>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html> 
