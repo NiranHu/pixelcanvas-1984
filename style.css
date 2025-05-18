@@ -314,7 +314,8 @@ h1 {
 }
 
 .upload-button {
-    padding: 5px 10px;
+    height: 32px;
+    padding: 0 10px;
     background-color: #bbbbbb;
     border: 2px solid #000000;
     margin-right: 5px;
@@ -322,6 +323,9 @@ h1 {
     font-family: 'Press Start 2P', cursive;
     font-size: 10px;
     box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .canvas-container {
@@ -359,6 +363,16 @@ h1 {
     padding: 5px;
     background-color: #ffffff;
     border: 1px solid #999999;
+}
+
+.cursor-position {
+    flex: 1;
+}
+
+.image-size {
+    font-weight: bold;
+    color: #333;
+    margin-left: auto;
 }
 
 .rotation-hint {

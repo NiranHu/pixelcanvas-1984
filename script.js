@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx: null,
         originalImage: null,
         pixelatedImage: null,
-        pixelSize: 8, // Default pixel size (changed from 16 to 8)
+        pixelSize: 1, // Default pixel size (changed from 8 to 1)
         zoom: 1, // Default zoom level
         currentTool: 'pencil',
         currentColor: '#000000',
@@ -28,7 +28,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // Setup canvas context
             this.ctx = this.canvas.getContext('2d');
             
-            // Create initial blank canvas
+            // Adjust canvas size to match container dimensions
+            const canvasContainer = document.querySelector('.canvas-container');
+            if (canvasContainer) {
+                // Use setTimeout to ensure the container is fully rendered
+                setTimeout(() => {
+                    this.adjustCanvasSize();
+                }, 100); // Small delay to ensure layout is complete
+            }
+            
+            // Create initial blank canvas (with default size first)
             this.clearCanvas();
             
             // Attach event listeners
@@ -44,6 +53,47 @@ document.addEventListener('DOMContentLoaded', function() {
             this.setupMacOSInteractions();
         },
         
+        // Adjust canvas size to match container dimensions
+        adjustCanvasSize: function(preserveContent = true) {
+            const canvasContainer = document.querySelector('.canvas-container');
+            if (!canvasContainer) return;
+            
+            // Get current canvas content if needed
+            let currentContent = null;
+            if (preserveContent && this.canvas.width > 0 && this.canvas.height > 0) {
+                currentContent = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+            }
+            
+            // 固定画布尺寸为720x418
+            const newWidth = 720;
+            const newHeight = 418;
+            
+            // Resize canvas
+            this.canvas.width = newWidth;
+            this.canvas.height = newHeight;
+            
+            // Restore content if we had previous content
+            if (currentContent) {
+                this.ctx.putImageData(currentContent, 0, 0);
+            } else {
+                // If no content to preserve, clear to white
+                this.clearCanvas();
+            }
+            
+            // Update display text - 始终显示固定尺寸
+            document.querySelector('.image-size').textContent = `${newWidth}x${newHeight}`;
+            
+            // Redraw layers if any
+            if (this.activeLayers && this.activeLayers.length > 0) {
+                this.redrawLayers();
+            }
+            
+            // Add to history if this is not part of initialization
+            if (preserveContent) {
+                this.saveToHistory();
+            }
+        },
+        
         // Initialize UI elements and interactions
         initUI: function() {
             // Select first tool and brush size
@@ -55,9 +105,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Update pixel slider with new presets
             const pixelSlider = document.getElementById('pixelSize');
-            pixelSlider.min = 2;  // Minimum 2x2
-            pixelSlider.max = 8;  // Maximum 8x8
-            pixelSlider.step = 2; // Steps of 2 (2,4,6,8)
+            pixelSlider.min = 1;  // Minimum 1x1
+            pixelSlider.max = 6;  // Maximum 6x6
+            pixelSlider.step = 1; // Steps of 1 (1,2,3,4,5,6)
             pixelSlider.value = this.pixelSize;
             this.updateSliderValue();
             
@@ -164,15 +214,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
+            // Window resize event to adjust canvas size
+            window.addEventListener('resize', () => {
+                // Debounce the resize event to avoid excessive calculations
+                if (this.resizeTimeout) clearTimeout(this.resizeTimeout);
+                
+                this.resizeTimeout = setTimeout(() => {
+                    this.adjustCanvasSize(true); // Preserve content
+                }, 200); // Debounce delay
+            });
+            
             // Pixel slider with fixed presets
             document.getElementById('pixelSize').addEventListener('input', e => {
                 this.pixelSize = parseInt(e.target.value);
-                // Force values to be only 2, 4, 6, or 8
-                if (![2, 4, 6, 8].includes(this.pixelSize)) {
+                // Force values to be only 1, 2, 4, or 6
+                if (![1, 2, 4, 6].includes(this.pixelSize)) {
                     // Round to nearest valid preset
-                    this.pixelSize = Math.round(this.pixelSize / 2) * 2;
-                    if (this.pixelSize < 2) this.pixelSize = 2;
-                    if (this.pixelSize > 8) this.pixelSize = 8;
+                    if (this.pixelSize < 1) this.pixelSize = 1;
+                    else if (this.pixelSize < 2) this.pixelSize = 1;
+                    else if (this.pixelSize < 4) this.pixelSize = 2;
+                    else if (this.pixelSize < 6) this.pixelSize = 4;
+                    else this.pixelSize = 6;
+                    
                     e.target.value = this.pixelSize;
                 }
                 this.updateSliderValue();
@@ -268,23 +331,38 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 清空整个画布和所有贴纸
         clearAll: function() {
+            // 询问用户是否同时清除贴纸
+            const clearStickers = confirm('是否同时清除贴纸？点击"确定"清除全部内容，点击"取消"仅清除图片保留贴纸。');
+            
             // 清空画布
             this.clearCanvas();
             
-            // 移除所有贴纸层
-            this.activeLayers = [];
-            this.selectedLayer = null;
-            this.movingStickerMode = false;
-            this.stickerPlacementMode = false;
+            // 清除原始图像和像素化图像
+            this.originalImage = null;
+            this.pixelatedImage = null;
+            
+            if (clearStickers) {
+                // 移除所有贴纸层
+                this.activeLayers = [];
+                this.selectedLayer = null;
+                this.movingStickerMode = false;
+                this.stickerPlacementMode = false;
+                
+                // 显示提示
+                this.showHint('画布和贴纸已全部清空');
+            } else {
+                // 保留贴纸，仅重绘图层
+                this.redrawLayers();
+                
+                // 显示提示
+                this.showHint('画布已清空，贴纸已保留');
+            }
             
             // 重绘画布
             this.redrawLayers();
             
             // 保存到历史记录
             this.saveToHistory();
-            
-            // 显示提示
-            this.showHint('画布已清空');
         },
         
         // 导出图像功能
@@ -377,21 +455,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 reader.onload = (event) => {
                     const img = new Image();
                     img.onload = () => {
-                        // Resize canvas if needed
-                        this.canvas.width = img.width;
-                        this.canvas.height = img.height;
+                        // 保存现有的贴纸层，以便稍后恢复
+                        const savedLayers = [...this.activeLayers];
                         
-                        // Draw original image to canvas
-                        this.ctx.drawImage(img, 0, 0);
+                        // 清空画布，但不清除贴纸层
+                        this.ctx.fillStyle = '#FFFFFF';
+                        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
                         
-                        // Save original image
+                        // 计算图片的缩放比例，使其适应画布
+                        const scale = Math.min(
+                            this.canvas.width / img.width,
+                            this.canvas.height / img.height
+                        );
+                        
+                        // 计算居中位置
+                        const x = (this.canvas.width - img.width * scale) / 2;
+                        const y = (this.canvas.height - img.height * scale) / 2;
+                        
+                        // 按比例缩放并居中绘制图片
+                        this.ctx.drawImage(
+                            img,
+                            0, 0, img.width, img.height,
+                            x, y, img.width * scale, img.height * scale
+                        );
+                        
+                        // 保存原始图像
                         this.originalImage = img;
                         
-                        // Apply pixel effect
-                        this.applyPixelEffect();
+                        // 应用像素效果，但不要重绘贴纸层
+                        this.applyPixelEffectWithoutLayers();
                         
-                        // Update image size display
-                        document.querySelector('.image-size').textContent = `${this.canvas.width}x${this.canvas.height}`;
+                        // 添加调试日志
+                        console.log('图片处理完成，pixelatedImage类型:', this.pixelatedImage ? (this.pixelatedImage.nodeName || '非DOM对象') : 'null');
+                        
+                        // 恢复贴纸层
+                        this.activeLayers = savedLayers;
+                        
+                        // 重绘所有贴纸层
+                        this.redrawLayers();
+                        
+                        // 保存到历史记录（包含图片和贴纸）
+                        this.saveToHistory();
+                        
+                        // 显示提示
+                        this.showHint('图片已应用，贴纸已保留');
                     };
                     
                     img.src = event.target.result;
@@ -399,15 +506,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 reader.readAsDataURL(file);
             } else {
-                alert('Please select an image file under 5MB.');
+                alert('请选择5MB以内的图片文件。');
             }
             
             // Clear file input
             e.target.value = '';
         },
         
-        // Apply pixel effect to canvas
-        applyPixelEffect: function() {
+        // 应用像素效果但不处理贴纸层 - 供handleImageUpload使用
+        applyPixelEffectWithoutLayers: function() {
             if (!this.originalImage) return;
             
             // Create a temporary canvas for pixelation
@@ -416,8 +523,26 @@ document.addEventListener('DOMContentLoaded', function() {
             tempCanvas.width = this.canvas.width;
             tempCanvas.height = this.canvas.height;
             
-            // Draw original image scaled to canvas size
-            tempCtx.drawImage(this.originalImage, 0, 0, tempCanvas.width, tempCanvas.height);
+            // 计算图片的缩放比例，使其适应画布
+            const scale = Math.min(
+                this.canvas.width / this.originalImage.width,
+                this.canvas.height / this.originalImage.height
+            );
+            
+            // 计算居中位置
+            const x = (this.canvas.width - this.originalImage.width * scale) / 2;
+            const y = (this.canvas.height - this.originalImage.height * scale) / 2;
+            
+            // 清空临时画布
+            tempCtx.fillStyle = '#FFFFFF';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // 按比例缩放并居中绘制图片到临时画布
+            tempCtx.drawImage(
+                this.originalImage,
+                0, 0, this.originalImage.width, this.originalImage.height,
+                x, y, this.originalImage.width * scale, this.originalImage.height * scale
+            );
             
             // Get image data
             const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
@@ -428,16 +553,90 @@ document.addEventListener('DOMContentLoaded', function() {
             // Put the processed image data back on the canvas
             this.ctx.putImageData(pixelatedData, 0, 0);
             
-            // Store the processed image as the current pixelated image
-            this.pixelatedImage = new Image();
-            this.pixelatedImage.src = this.canvas.toDataURL();
+            // 直接在主画布上应用像素化效果，而不是创建新图像
+            // 这样可以避免图像加载的异步问题
+            this.pixelatedImage = null; // 清除旧的图像引用
+            
+            // 创建一个副本来存储像素化后的图像数据
+            const pixelatedCanvas = document.createElement('canvas');
+            pixelatedCanvas.width = this.canvas.width;
+            pixelatedCanvas.height = this.canvas.height;
+            const pixelatedCtx = pixelatedCanvas.getContext('2d');
+            pixelatedCtx.putImageData(pixelatedData, 0, 0);
+            
+            // 直接将Canvas作为pixelatedImage使用，避免异步加载问题
+            this.pixelatedImage = pixelatedCanvas;
+            
+            // 注意：此函数不保存历史记录，也不重绘贴纸层
+            // 由调用者处理贴纸层和历史记录
+        },
+        
+        // Apply pixel effect to canvas
+        applyPixelEffect: function() {
+            if (!this.originalImage) return;
+            
+            // 保存现有的贴纸层，以便稍后恢复
+            const savedLayers = [...this.activeLayers];
+            
+            // Create a temporary canvas for pixelation
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = this.canvas.width;
+            tempCanvas.height = this.canvas.height;
+            
+            // 计算图片的缩放比例，使其适应画布
+            const scale = Math.min(
+                this.canvas.width / this.originalImage.width,
+                this.canvas.height / this.originalImage.height
+            );
+            
+            // 计算居中位置
+            const x = (this.canvas.width - this.originalImage.width * scale) / 2;
+            const y = (this.canvas.height - this.originalImage.height * scale) / 2;
+            
+            // 清空临时画布
+            tempCtx.fillStyle = '#FFFFFF';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // 按比例缩放并居中绘制图片到临时画布
+            tempCtx.drawImage(
+                this.originalImage,
+                0, 0, this.originalImage.width, this.originalImage.height,
+                x, y, this.originalImage.width * scale, this.originalImage.height * scale
+            );
+            
+            // Get image data
+            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // Apply pixelation effect
+            const pixelatedData = this.pixelateImage(imageData, this.pixelSize);
+            
+            // Put the processed image data back on the canvas
+            this.ctx.putImageData(pixelatedData, 0, 0);
+            
+            // 直接在主画布上应用像素化效果，而不是创建新图像
+            // 这样可以避免图像加载的异步问题
+            this.pixelatedImage = null; // 清除旧的图像引用
+            
+            // 创建一个副本来存储像素化后的图像数据
+            const pixelatedCanvas = document.createElement('canvas');
+            pixelatedCanvas.width = this.canvas.width;
+            pixelatedCanvas.height = this.canvas.height;
+            const pixelatedCtx = pixelatedCanvas.getContext('2d');
+            pixelatedCtx.putImageData(pixelatedData, 0, 0);
+            
+            // 直接将Canvas作为pixelatedImage使用，避免异步加载问题
+            this.pixelatedImage = pixelatedCanvas;
+            
+            // 恢复贴纸层
+            this.activeLayers = savedLayers;
             
             // Save to history
             this.saveToHistory();
             
             // Redraw layers if any exist
             if (this.activeLayers && this.activeLayers.length > 0) {
-                this.redrawLayers();
+            this.redrawLayers();
             }
         },
         
@@ -1116,25 +1315,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Show hint message
         showHint: function(message) {
-            const canvasInfo = document.querySelector('.canvas-info');
-            
-            // Create hint element if it doesn't exist
-            let hint = document.querySelector('.sticker-hint');
-            if (!hint) {
-                hint = document.createElement('span');
-                hint.className = 'sticker-hint';
-                hint.style.marginLeft = '15px';
-                hint.style.color = '#007BFF';
-                canvasInfo.appendChild(hint);
-            }
-            
-            // Set hint text
-            hint.textContent = message;
-            
-            // Hide hint after 3 seconds
-            setTimeout(() => {
-                hint.textContent = '';
-            }, 3000);
+            // 禁止显示提示信息
+            return;
         },
         
         // Handle canvas click (for sticker placement)
@@ -1489,171 +1671,332 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = imageData.data;
             const newData = new Uint8ClampedArray(data.length);
             
-            // Step 1: Enhanced preprocessing - improve detail retention
-            const preprocessedData = new Uint8ClampedArray(data.length);
-            for (let i = 0; i < data.length; i += 4) {
-                // Convert to grayscale with enhanced luminance formula
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-                
-                // Enhanced grayscale with better detail preservation
-                let gray = 0.299 * r + 0.587 * g + 0.114 * b;
-                
-                // Apply moderate contrast enhancement
-                const contrast = 1.2; // 降低对比度以保留更多细节
-                const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-                const adjustedGray = factor * (gray - 128) + 128;
-                
-                preprocessedData[i] = adjustedGray;
-                preprocessedData[i + 1] = adjustedGray;
-                preprocessedData[i + 2] = adjustedGray;
-                preprocessedData[i + 3] = data[i + 3]; // Keep original alpha
-            }
+            // 先检测图像中的重要特征（如人脸、眼睛、轮廓等）
+            const featureMap = this.detectFeatures(data, width, height);
             
-            // Step 2: Apply more subtle edge detection
-            const edgeData = this.detectEdges(preprocessedData, width, height);
-            
-            // Step 3: Pixelate with improved detail preservation
-            // For each pixel block
+            // 直接像素化彩色图像，保留原始颜色
+            // 对每个像素块进行处理
             for (let y = 0; y < height; y += pixelSize) {
                 for (let x = 0; x < width; x += pixelSize) {
-                    // Calculate the region boundaries
+                    // 计算区域边界
                     const blockWidth = Math.min(pixelSize, width - x);
                     const blockHeight = Math.min(pixelSize, height - y);
                     
-                    // Calculate multiple values for the block
-                    let sumIntensity = 0;
-                    let sumEdge = 0;
-                    let lightCount = 0;
-                    let darkCount = 0;
+                    // 为块内每个颜色通道计算平均值
+                    let sumR = 0, sumG = 0, sumB = 0;
                     let count = 0;
+                    let hasFeature = false;
+                    let featureWeight = 0;
                     
+                    // 收集块内所有像素的颜色值
                     for (let dy = 0; dy < blockHeight; dy++) {
                         for (let dx = 0; dx < blockWidth; dx++) {
                             const sourceX = x + dx;
                             const sourceY = y + dy;
                             const sourceIdx = (sourceY * width + sourceX) * 4;
                             
-                            sumIntensity += preprocessedData[sourceIdx];
-                            sumEdge += edgeData[sourceIdx];
+                            sumR += data[sourceIdx];
+                            sumG += data[sourceIdx + 1];
+                            sumB += data[sourceIdx + 2];
                             
-                            // Count light and dark pixels for better thresholding
-                            if (preprocessedData[sourceIdx] > 128) {
-                                lightCount++;
-                            } else {
-                                darkCount++;
+                            // 检查此像素是否为重要特征
+                            const featureIdx = sourceY * width + sourceX;
+                            if (featureMap[featureIdx] > 0) {
+                                hasFeature = true;
+                                featureWeight += featureMap[featureIdx];
                             }
                             
                             count++;
                         }
                     }
                     
-                    // Calculate average values
-                    const avgIntensity = sumIntensity / count;
-                    // Reduce edge influence for better detail retention
-                    const avgEdge = sumEdge / count;
+                    // 计算平均色值
+                    const avgR = Math.round(sumR / count);
+                    const avgG = Math.round(sumG / count);
+                    const avgB = Math.round(sumB / count);
                     
-                    // Adaptive thresholding based on the block's characteristics
-                    let threshold = 100; // Default threshold
+                    let finalR = avgR, finalG = avgG, finalB = avgB;
                     
-                    // Dynamic thresholding based on block content
-                    if (lightCount > darkCount * 2) {
-                        // Mostly light block - use higher threshold to preserve details
-                        threshold = 140; // 降低亮区阈值以增加细节
-                    } else if (darkCount > lightCount * 2) {
-                        // Mostly dark block - use lower threshold to preserve details
-                        threshold = 110; // 提高暗区阈值以增加清晰度
+                    // 对于包含重要特征的区域，使用更高的饱和度和更精细的处理
+                    if (hasFeature) {
+                        const weight = Math.min(1, featureWeight / (count * 3)); // 特征重要性权重
+                        
+                        // 增强特征区域的色彩
+                        const hsv = this.rgbToHsv(avgR, avgG, avgB);
+                        
+                        // 根据特征权重调整饱和度和亮度
+                        hsv.s = Math.min(1, hsv.s * (1.2 + weight * 0.4)); // 增加饱和度
+                        hsv.v = Math.min(1, hsv.v * (1 + weight * 0.2));   // 轻微增加亮度
+                        
+                        const enhancedRgb = this.hsvToRgb(hsv.h, hsv.s, hsv.v);
+                        finalR = enhancedRgb.r;
+                        finalG = enhancedRgb.g;
+                        finalB = enhancedRgb.b;
+                    } else {
+                        // 非特征区域使用标准的颜色增强
+                        const hsv = this.rgbToHsv(avgR, avgG, avgB);
+                        hsv.s = Math.min(1, hsv.s * 1.2); // 增加饱和度
+                        
+                        const enhancedRgb = this.hsvToRgb(hsv.h, hsv.s, hsv.v);
+                        finalR = enhancedRgb.r;
+                        finalG = enhancedRgb.g;
+                        finalB = enhancedRgb.b;
                     }
                     
-                    // Combine intensity and edge with reduced edge influence
-                    const combined = avgIntensity - avgEdge * 1.0; // 降低边缘权重以避免过度强调轮廓
+                    // 颜色量化，减少颜色数量，更接近经典像素艺术
+                    const quantizedColor = this.quantizeColor(finalR, finalG, finalB);
+                    finalR = quantizedColor.r;
+                    finalG = quantizedColor.g;
+                    finalB = quantizedColor.b;
                     
-                    // Threshold to black or white
-                    const pixelValue = combined < threshold ? 0 : 255;
-                    
-                    // Apply the black or white color to all pixels in the block
+                    // 将增强的颜色应用到块内所有像素
                     for (let dy = 0; dy < blockHeight; dy++) {
                         for (let dx = 0; dx < blockWidth; dx++) {
                             const targetX = x + dx;
                             const targetY = y + dy;
                             const targetIdx = (targetY * width + targetX) * 4;
                             
-                            newData[targetIdx] = pixelValue;
-                            newData[targetIdx + 1] = pixelValue;
-                            newData[targetIdx + 2] = pixelValue;
-                            newData[targetIdx + 3] = 255; // Full opacity
+                            newData[targetIdx] = finalR;
+                            newData[targetIdx + 1] = finalG;
+                            newData[targetIdx + 2] = finalB;
+                            newData[targetIdx + 3] = 255; // 完全不透明
                         }
                     }
                 }
             }
             
-            // Step 4: Apply light post-processing to improve readability
-            this.enhanceReadability(newData, width, height, pixelSize);
+            // 应用边缘增强，让像素之间的边界更明显
+            this.enhancePixelEdges(newData, width, height, pixelSize);
+            
+            // 最后一步：应用对比度增强，让像素艺术更清晰
+            this.enhanceContrast(newData, width, height);
+            
+            // 应用轻微的特效滤镜，模拟像素艺术风格
+            this.applyPixelArtFilter(newData, width, height);
             
             return new ImageData(newData, width, height);
         },
         
-        // Enhance image readability by smoothing isolated pixels
-        enhanceReadability: function(data, width, height, pixelSize) {
-            // Copy data for reference
-            const tempData = new Uint8ClampedArray(data);
+        // 颜色量化 - 减少颜色数量，更接近经典像素艺术
+        quantizeColor: function(r, g, b) {
+            // 定义量化级别 - 较低的值会产生更强的像素艺术风格
+            const levels = 6; // 每个通道的颜色级别数
             
-            // Skip if pixel size is too small (less effective)
-            if (pixelSize < 4) return;
+            // 量化每个通道
+            const quantR = Math.round(Math.round(r * (levels - 1) / 255) * 255 / (levels - 1));
+            const quantG = Math.round(Math.round(g * (levels - 1) / 255) * 255 / (levels - 1));
+            const quantB = Math.round(Math.round(b * (levels - 1) / 255) * 255 / (levels - 1));
             
-            // Simple smoothing to remove isolated pixels
-            for (let y = pixelSize; y < height - pixelSize; y += pixelSize) {
-                for (let x = pixelSize; x < width - pixelSize; x += pixelSize) {
-                    const centerIdx = (y * width + x) * 4;
-                    const centerValue = tempData[centerIdx];
-                    
-                    // Check surrounding blocks (in pixel grid)
-                    let surroundingSum = 0;
-                    let surroundingCount = 0;
-                    
-                    // Check 4-connected neighbors (top, right, bottom, left)
-                    const neighbors = [
-                        [(y - pixelSize) * width + x, pixelSize * width], // top
-                        [y * width + (x + pixelSize), pixelSize], // right
-                        [(y + pixelSize) * width + x, pixelSize * width], // bottom
-                        [y * width + (x - pixelSize), pixelSize]  // left
-                    ];
-                    
-                    for (const [neighborIdx, step] of neighbors) {
-                        if (neighborIdx >= 0 && neighborIdx < tempData.length / 4) {
-                            surroundingSum += tempData[neighborIdx * 4];
-                            surroundingCount++;
-                        }
-                    }
-                    
-                    // If this is an isolated pixel (opposite to all neighbors)
-                    if (surroundingCount >= 3) {
-                        const avgSurrounding = surroundingSum / surroundingCount;
-                        
-                        // If center is very different from surroundings (isolated)
-                        if ((centerValue === 0 && avgSurrounding > 200) || 
-                            (centerValue === 255 && avgSurrounding < 50)) {
-                            
-                            // Fill the block with the surrounding value
-                            const newValue = (avgSurrounding > 128) ? 255 : 0;
-                            
-                            // Apply to the block
-                            for (let dy = 0; dy < pixelSize && (y + dy) < height; dy++) {
-                                for (let dx = 0; dx < pixelSize && (x + dx) < width; dx++) {
-                                    const idx = ((y + dy) * width + (x + dx)) * 4;
-                                    data[idx] = newValue;
-                                    data[idx + 1] = newValue;
-                                    data[idx + 2] = newValue;
-                                }
-                            }
-                        }
+            return { r: quantR, g: quantG, b: quantB };
+        },
+        
+        // 应用像素艺术风格滤镜
+        applyPixelArtFilter: function(data, width, height) {
+            // 轻微的"陈旧"效果，提高怀旧感
+            for (let i = 0; i < data.length; i += 4) {
+                // 轻微偏黄，模拟老式游戏机屏幕
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                // 提高暖色调，减少蓝色
+                data[i] = Math.min(255, r * 1.05);                   // 轻微增加红色
+                data[i + 1] = Math.min(255, g * 1.02);               // 轻微增加绿色
+                data[i + 2] = Math.max(0, b * 0.95);                 // 轻微减少蓝色
+                
+                // 提高对比度
+                for (let c = 0; c < 3; c++) {
+                    if (data[i + c] > 180) {
+                        data[i + c] = Math.min(255, data[i + c] * 1.05);
+                    } else if (data[i + c] < 80) {
+                        data[i + c] = Math.max(0, data[i + c] * 0.95);
                     }
                 }
             }
         },
         
-        // Detect edges in an image
+        // 检测图像中的重要特征（如人脸、眼睛、轮廓等）
+        detectFeatures: function(data, width, height) {
+            // 创建特征权重图，初始化为0
+            const featureMap = new Array(width * height).fill(0);
+            
+            // 1. 计算图像的边缘信息
+            const edgeData = this.detectEdges(data, width, height);
+            
+            // 2. 计算局部色彩变化（可以指示皮肤、眼睛等）
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const idx = (y * width + x) * 4;
+                    const mapIdx = y * width + x;
+                    
+                    // 计算边缘强度的平均值作为特征检测的一部分
+                    let edgeStrength = (edgeData[idx] + edgeData[idx + 1] + edgeData[idx + 2]) / 3;
+                    
+                    // 皮肤色检测 - 简单启发式方法
+                    // 皮肤具有特定的红色和绿色比例
+                    const r = data[idx];
+                    const g = data[idx + 1];
+                    const b = data[idx + 2];
+                    
+                    // 皮肤色检测启发式规则
+                    const isSkin = (r > 95 && g > 40 && b > 20 &&
+                                   r > g && r > b &&
+                                   Math.abs(r - g) > 15 &&
+                                   r - g > 0 && r - b > 0);
+                    
+                    // 眼睛检测 - 简单启发式方法
+                    // 眼睛往往具有较高的对比度和特定的颜色分布
+                    let eyeDetection = 0;
+                    
+                    // 计算周围像素的对比度
+                    let contrast = 0;
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            if (dx === 0 && dy === 0) continue;
+                            
+                            const nIdx = ((y + dy) * width + (x + dx)) * 4;
+                            const dr = Math.abs(data[idx] - data[nIdx]);
+                            const dg = Math.abs(data[idx + 1] - data[nIdx + 1]);
+                            const db = Math.abs(data[idx + 2] - data[nIdx + 2]);
+                            
+                            contrast += Math.max(dr, Math.max(dg, db));
+                        }
+                    }
+                    contrast /= 8; // 平均对比度
+                    
+                    // 较暗区域 + 高对比度 可能是眼睛
+                    if (r < 100 && g < 100 && b < 100 && contrast > 50) {
+                        eyeDetection = 0.8;
+                    }
+                    
+                    // 组合不同的特征检测
+                    featureMap[mapIdx] = 
+                        edgeStrength * 0.3 +           // 边缘权重
+                        (isSkin ? 0.5 : 0) +           // 皮肤检测权重
+                        eyeDetection +                  // 眼睛检测权重
+                        (contrast / 255) * 0.3;         // 对比度权重
+                }
+            }
+            
+            return featureMap;
+        },
+        
+        // 增强像素之间的边缘，让像素风格更明显
+        enhancePixelEdges: function(data, width, height, pixelSize) {
+            // 只在像素之间创建边缘
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const idx = (y * width + x) * 4;
+                    
+                    // 检查是否在像素块的边缘
+                    const isEdgeX = (x % pixelSize === 0);
+                    const isEdgeY = (y % pixelSize === 0);
+                    
+                    // 如果是像素边缘，稍微调暗该点（轻微描边效果）
+                    if ((isEdgeX || isEdgeY) && x > 0 && y > 0 && x < width - 1 && y < height - 1) {
+                        // 减淡颜色以创建细微的边缘效果，但不要太明显
+                        const darkenFactor = 0.92; // 轻微暗化
+                        data[idx] = Math.floor(data[idx] * darkenFactor);
+                        data[idx + 1] = Math.floor(data[idx + 1] * darkenFactor);
+                        data[idx + 2] = Math.floor(data[idx + 2] * darkenFactor);
+                    }
+                }
+            }
+        },
+        
+        // 增强图像对比度和色彩
+        enhanceContrast: function(data, width, height) {
+            // 找出亮度的最小值和最大值
+            let min = 255;
+            let max = 0;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                // 计算亮度
+                const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+                
+                if (luma < min) min = luma;
+                if (luma > max) max = luma;
+            }
+            
+            // 如果没有足够的对比度范围，跳过处理
+            if (max - min < 30) return;
+            
+            // 计算对比度调整因子
+            const contrast = 1.2; // 增加对比度
+            
+            // 应用对比度调整
+            for (let i = 0; i < data.length; i += 4) {
+                for (let c = 0; c < 3; c++) {
+                    // 归一化到0-1范围
+                    let value = data[i + c];
+                    
+                    // 应用对比度调整公式
+                    value = ((value - 128) * contrast) + 128;
+                    
+                    // 裁剪到有效范围
+                    data[i + c] = Math.max(0, Math.min(255, Math.round(value)));
+                }
+            }
+        },
+        
+        // RGB转HSV颜色模型（用于颜色增强）
+        rgbToHsv: function(r, g, b) {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+            
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h, s, v = max;
+            
+            const d = max - min;
+            s = max === 0 ? 0 : d / max;
+            
+            if (max === min) {
+                h = 0; // 灰色
+            } else {
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            
+            return { h, s, v };
+        },
+        
+        // HSV转RGB颜色模型
+        hsvToRgb: function(h, s, v) {
+            let r, g, b;
+            
+            const i = Math.floor(h * 6);
+            const f = h * 6 - i;
+            const p = v * (1 - s);
+            const q = v * (1 - f * s);
+            const t = v * (1 - (1 - f) * s);
+            
+            switch (i % 6) {
+                case 0: r = v; g = t; b = p; break;
+                case 1: r = q; g = v; b = p; break;
+                case 2: r = p; g = v; b = t; break;
+                case 3: r = p; g = q; b = v; break;
+                case 4: r = t; g = p; b = v; break;
+                case 5: r = v; g = p; b = q; break;
+            }
+            
+            return {
+                r: Math.round(r * 255),
+                g: Math.round(g * 255),
+                b: Math.round(b * 255)
+            };
+        },
+        
+        // Detect edges in an image for color images
         detectEdges: function(data, width, height) {
             const result = new Uint8ClampedArray(data.length);
             
@@ -1673,35 +2016,37 @@ document.addEventListener('DOMContentLoaded', function() {
                  1,  2,  1
             ];
             
-            // Apply Sobel operator to find edges
+            // Apply Sobel operator to find edges - for each color channel
             for (let y = 1; y < height - 1; y++) {
                 for (let x = 1; x < width - 1; x++) {
                     const idx = (y * width + x) * 4;
                     
-                    let gradientX = 0;
-                    let gradientY = 0;
-                    
-                    // Apply convolution with Sobel kernels
-                    for (let ky = -1; ky <= 1; ky++) {
-                        for (let kx = -1; kx <= 1; kx++) {
-                            const kernelIdx = (ky + 1) * 3 + (kx + 1);
-                            const pixelIdx = ((y + ky) * width + (x + kx)) * 4;
-                            
-                            gradientX += smoothedData[pixelIdx] * sobelX[kernelIdx];
-                            gradientY += smoothedData[pixelIdx] * sobelY[kernelIdx];
+                    // Process each color channel
+                    for (let c = 0; c < 3; c++) {
+                        let gradientX = 0;
+                        let gradientY = 0;
+                        
+                        // Apply convolution with Sobel kernels
+                        for (let ky = -1; ky <= 1; ky++) {
+                            for (let kx = -1; kx <= 1; kx++) {
+                                const kernelIdx = (ky + 1) * 3 + (kx + 1);
+                                const pixelIdx = ((y + ky) * width + (x + kx)) * 4 + c;
+                                
+                                gradientX += smoothedData[pixelIdx] * sobelX[kernelIdx];
+                                gradientY += smoothedData[pixelIdx] * sobelY[kernelIdx];
+                            }
                         }
+                        
+                        // Calculate gradient magnitude for this channel
+                        const gradientMagnitude = Math.sqrt(gradientX * gradientX + gradientY * gradientY);
+                        
+                        // Apply a moderate threshold to reduce noise in edge detection
+                        const edgeValue = gradientMagnitude > 20 ? gradientMagnitude : gradientMagnitude * 0.5;
+                        
+                        // Normalize to 0-255 range and store result for this channel
+                        result[idx + c] = Math.min(255, edgeValue);
                     }
                     
-                    // Calculate gradient magnitude
-                    const gradientMagnitude = Math.sqrt(gradientX * gradientX + gradientY * gradientY);
-                    
-                    // Apply a moderate threshold to reduce noise in edge detection
-                    const edgeValue = gradientMagnitude > 20 ? gradientMagnitude : gradientMagnitude * 0.5;
-                    
-                    // Normalize to 0-255 range
-                    result[idx] = Math.min(255, edgeValue);
-                    result[idx + 1] = Math.min(255, edgeValue);
-                    result[idx + 2] = Math.min(255, edgeValue);
                     result[idx + 3] = data[idx + 3]; // Keep original alpha
                 }
             }
@@ -1709,7 +2054,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return result;
         },
         
-        // Apply light smoothing to reduce noise
+        // Apply light smoothing to reduce noise - works on color images
         smoothImage: function(data, width, height) {
             const result = new Uint8ClampedArray(data.length);
             
@@ -1726,31 +2071,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // Simple gaussian-like blur for remaining pixels
+            // Simple gaussian-like blur for remaining pixels - each color channel separately
             for (let y = 1; y < height - 1; y++) {
                 for (let x = 1; x < width - 1; x++) {
                     const idx = (y * width + x) * 4;
                     
-                    // Apply 3x3 gaussian kernel
-                    let sum = 0;
+                    // Apply 3x3 gaussian kernel to each color channel
                     const kernel = [
                         0.075, 0.125, 0.075,
                         0.125, 0.2,   0.125,
                         0.075, 0.125, 0.075
                     ];
                     
-                    for (let ky = -1; ky <= 1; ky++) {
-                        for (let kx = -1; kx <= 1; kx++) {
-                            const kernelIdx = (ky + 1) * 3 + (kx + 1);
-                            const pixelIdx = ((y + ky) * width + (x + kx)) * 4;
-                            sum += data[pixelIdx] * kernel[kernelIdx];
+                    // Process each RGB channel
+                    for (let c = 0; c < 3; c++) {
+                        let sum = 0;
+                        
+                        for (let ky = -1; ky <= 1; ky++) {
+                            for (let kx = -1; kx <= 1; kx++) {
+                                const kernelIdx = (ky + 1) * 3 + (kx + 1);
+                                const pixelIdx = ((y + ky) * width + (x + kx)) * 4 + c;
+                                sum += data[pixelIdx] * kernel[kernelIdx];
+                            }
                         }
+                        
+                        result[idx + c] = sum;
                     }
                     
-                    result[idx] = sum;
-                    result[idx + 1] = sum;
-                    result[idx + 2] = sum;
-                    result[idx + 3] = data[idx + 3];
+                    result[idx + 3] = data[idx + 3]; // Keep original alpha
                 }
             }
             
@@ -1780,7 +2128,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize the application
     app.init();
-});
+}); 
 
 // Floyd-Steinberg dithering algorithm implementation
 const dithering = {
