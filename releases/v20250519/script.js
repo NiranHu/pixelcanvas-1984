@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx: null,
         originalImage: null,
         pixelatedImage: null,
-        pixelSize: 4, // Default pixel size (changed from 8 to 1)
+        pixelSize: 1, // Default pixel size (changed from 8 to 1)
         zoom: 1, // Default zoom level
         currentTool: 'pencil',
         currentColor: '#000000',
@@ -96,10 +96,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Initialize UI elements and interactions
         initUI: function() {
-            // Select first tool and brush size - 默认选中铅笔工具
+            // Select first tool and brush size
             document.querySelector('.tool[data-tool="pencil"]').classList.add('active');
             document.querySelector('.tool[data-size="1"]').classList.add('active');
-            this.currentTool = 'pencil'; // 确保初始化时设置默认工具
             
             // Select first color
             document.querySelector('.color').classList.add('active');
@@ -401,14 +400,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Select active tool
         selectTool: function(tool) {
-            // 检查是否点击已选中的工具（铅笔或橡皮擦）- 实现二次点击取消选择
-            if ((tool === 'pencil' || tool === 'eraser') && this.currentTool === tool) {
-                // 当前工具已被选中，取消选择
-                document.querySelector(`.tool[data-tool="${tool}"]`).classList.remove('active');
-                this.currentTool = 'none'; // 设置为无工具选中状态
-                return; // 退出函数，不执行后续步骤
-            }
-            
             // Remove active class from all tools
             document.querySelectorAll('.tool[data-tool]').forEach(el => {
                 el.classList.remove('active');
@@ -419,21 +410,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Update current tool
             this.currentTool = tool;
-            
-            // 如果选择了绘图工具，取消贴纸选中和放置模式
-            if (tool === 'pencil' || tool === 'eraser') {
-                // 取消贴纸选中状态
-                if (this.selectedLayer || this.activeLayers.some(layer => layer.selected)) {
-                    this.activeLayers.forEach(layer => layer.selected = false);
-                    this.selectedLayer = null;
-                    this.movingStickerMode = false;
-                    this.redrawLayers();
-                }
-                
-                // 退出贴纸放置模式
-                this.stickerPlacementMode = false;
-                this.selectedSticker = null;
-            }
         },
         
         // Select brush size
@@ -673,33 +649,36 @@ document.addEventListener('DOMContentLoaded', function() {
             this.lastX = x;
             this.lastY = y;
             
-            // 处理贴纸放置模式
-            if (this.stickerPlacementMode && this.selectedSticker) {
-                this.placeSticker(this.selectedSticker, e);
-                return;
-            }
-            
-            // 检查是否点击了已存在的贴纸
-            const clickedLayer = this.findLayerAtPosition(x, y);
-            if (clickedLayer) {
-                // 选择该贴纸，取消选择其他贴纸
-                this.activeLayers.forEach(layer => layer.selected = false);
-                clickedLayer.selected = true;
-                this.selectedLayer = clickedLayer; // 设置为当前选中贴纸
+            // 在选择工具模式下检查是否点击了已存在的贴纸
+            if (this.currentTool === 'select') {
+                const clickedLayer = this.findLayerAtPosition(x, y);
                 
-                // 进入移动模式
-                this.movingStickerMode = true;
+                if (clickedLayer) {
+                    // 选择该贴纸，取消选择其他贴纸
+                    this.activeLayers.forEach(layer => layer.selected = false);
+                    clickedLayer.selected = true;
+                    this.selectedLayer = clickedLayer; // 设置为当前选中贴纸
+                    
+                    // 进入移动模式
+                    this.movingStickerMode = true;
+                    
+                    // 退出贴纸放置模式
+                    this.stickerPlacementMode = false;
+                    
+                    // 重绘以显示选择状态
+                    this.redrawLayers();
+                    
+                    // 阻止继续处理，避免绘制到画布上
+                    return;
+                }
                 
-                // 退出贴纸放置模式
-                this.stickerPlacementMode = false;
+                // 如果在选择工具模式下点击空白处且在贴纸放置模式下，放置新贴纸
+                if (this.stickerPlacementMode && this.selectedSticker) {
+                    this.placeSticker(this.selectedSticker, e);
+                    return;
+                }
                 
-                // 重绘以显示选择状态
-                this.redrawLayers();
-                
-                // 阻止继续处理，避免绘制到画布上
-                return;
-            } else {
-                // 点击空白处，取消贴纸选中状态
+                // 如果在选择工具模式下点击空白处，并且有选中的贴纸，则取消贴纸的选中状态
                 if (this.selectedLayer || this.activeLayers.some(layer => layer.selected)) {
                     // 取消所有贴纸的选中状态
                     this.activeLayers.forEach(layer => layer.selected = false);
@@ -709,12 +688,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.movingStickerMode = false;
                     // 重绘以更新视图（移除蓝色虚线框）
                     this.redrawLayers();
+                    return;
                 }
-            }
-            
-            // 如果没有工具被选中或处于"none"状态，不执行绘图操作
-            if (this.currentTool === 'none') {
-                return;
             }
             
             // 对于其他工具，继续正常的绘制行为
@@ -725,6 +700,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.drawPixel(x, y);
             } else if (this.currentTool === 'eraser') {
                 this.erasePixel(x, y);
+            } else if (this.currentTool === 'fill') {
+                this.fillArea(x, y);
             }
             
             // 更新光标位置
@@ -764,11 +741,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 更新光标位置
             this.updateCursorPosition(x, y);
-            
-            // 如果没有工具被选中或处于"none"状态，不执行绘图操作
-            if (this.currentTool === 'none') {
-                return;
-            }
             
             if (!this.isDragging) return;
             
@@ -1221,14 +1193,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Set as selected sticker
             this.selectedSticker = sticker;
             
-            // 保存当前工具，以便稍后恢复
-            this.previousTool = this.currentTool;
+            // Set current tool to select for sticker placement
+            this.selectTool('select');
             
-            // 进入贴纸放置模式（不再需要select工具）
+            // 进入贴纸放置模式
             this.stickerPlacementMode = true;
-            
-            // 在贴纸放置模式下，停用其他绘图功能
-            // 但不更改工具栏的视觉显示，仅在功能上禁用
         },
         
         // Place sticker on canvas
@@ -1248,13 +1217,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Select this layer instead of placing a new sticker
                 this.activeLayers.forEach(layer => layer.selected = false);
                 clickedLayer.selected = true;
-                this.selectedLayer = clickedLayer; // 设置为当前选中贴纸
+                this.selectedLayer = clickedLayer;
                 
                 // 退出贴纸放置模式
                 this.stickerPlacementMode = false;
-                
-                // 进入移动模式
-                this.movingStickerMode = true;
                 
                 // Redraw to show selection
                 this.redrawLayers();
@@ -1312,9 +1278,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // 放置后退出贴纸放置模式，避免意外创建多个贴纸
             this.stickerPlacementMode = false;
             
-            // 放置后启用移动模式，方便用户立即调整位置
-            this.movingStickerMode = true;
-            
             // Redraw all layers
             this.redrawLayers();
             
@@ -1358,29 +1321,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Handle canvas click (for sticker placement)
         handleCanvasClick: function(event) {
-            // 如果是在贴纸放置模式，则已在mousedown中处理
-            if (this.stickerPlacementMode) return;
-            
-            const rect = this.canvas.getBoundingClientRect();
-            const x = Math.floor((event.clientX - rect.left) / this.zoom);
-            const y = Math.floor((event.clientY - rect.top) / this.zoom);
-            
-            // 检查是否点击了已存在的贴纸
-            const clickedLayer = this.findLayerAtPosition(x, y);
-            
-            if (!clickedLayer) {
-                // 点击空白处，取消贴纸选中状态
-                if (this.selectedLayer || this.activeLayers.some(layer => layer.selected)) {
-                    // 取消所有贴纸的选中状态
-                    this.activeLayers.forEach(layer => layer.selected = false);
-                    // 清除当前选中的贴纸引用
-                    this.selectedLayer = null;
-                    // 退出移动模式
-                    this.movingStickerMode = false;
-                    // 重绘以更新视图（移除蓝色虚线框）
-                    this.redrawLayers();
-                }
-            }
+            // 不再在这里处理贴纸放置，改为在mousedown中处理
+            // 这样可以避免同时触发选中和放置的冲突
         },
         
         // Redraw all layers
