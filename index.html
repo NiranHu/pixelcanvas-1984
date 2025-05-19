@@ -27,6 +27,15 @@
         <div class="main-content">
             <!-- 左侧工具栏 - 240px宽 -->
             <div class="toolbar">
+                <!-- 像素化强度 -->
+                <div class="tool-group">
+                    <h3 class="tool-group-title">Pixelate</h3>
+                    <div class="slider-container">
+                        <input type="range" min="1" max="6" step="1" value="4" class="pixel-slider" id="pixelSize">
+                        <div class="slider-value">4x4</div>
+                    </div>
+                </div>
+                
                 <!-- 画笔工具 -->
                 <div class="tool-group">
                     <h3 class="tool-group-title">Brushes</h3>
@@ -41,7 +50,6 @@
                     <div class="tool" data-tool="pencil">✏️</div>
                     <div class="tool" data-tool="eraser">🧽</div>
                     <div class="tool" data-tool="fill">🖌️</div>
-                    <div class="tool" data-tool="select">🔍</div>
                 </div>
                 
                 <!-- 颜色选择器 -->
@@ -56,15 +64,6 @@
                         <div class="color" style="background-color: #FFFF00;"></div>
                         <div class="color" style="background-color: #FF00FF;"></div>
                         <div class="color" style="background-color: #00FFFF;"></div>
-                    </div>
-                </div>
-                
-                <!-- 像素化强度 -->
-                <div class="tool-group">
-                    <h3 class="tool-group-title">Pixelate</h3>
-                    <div class="slider-container">
-                        <input type="range" min="1" max="6" step="1" value="1" class="pixel-slider" id="pixelSize">
-                        <div class="slider-value">1x1</div>
                     </div>
                 </div>
                 
