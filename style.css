@@ -248,6 +248,7 @@ h1 {
     border: 2px solid #000000;
     background-color: #dddddd;
     box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+    min-height: 0;
 }
 
 .canvas-controls {
@@ -256,6 +257,8 @@ h1 {
     background-color: #bbbbbb;
     border-bottom: 2px solid #000000;
     align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .zoom-button {
@@ -336,6 +339,8 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: center;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 #pixelCanvas {
@@ -344,6 +349,10 @@ h1 {
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     border: 1px solid #000000;
+    max-width: 100%;
+    height: auto !important;
+    transform-origin: top left;
+    image-rendering: -webkit-optimize-contrast;
 }
 
 .canvas-guides {
@@ -535,6 +544,211 @@ footer {
     }
 }
 
+/* 平板电脑优化 */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .container {
+        padding: 5px;
+    }
+    
+    h1 {
+        font-size: 16px;
+    }
+    
+    .toolbar {
+        max-height: none;
+        overflow-y: visible;
+    }
+    
+    .tool-group {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .canvas-area {
+        height: auto;
+    }
+    
+    .canvas-container {
+        height: auto;
+        overflow: auto;
+    }
+}
+
+/* 手机优化 */
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+    
+    .container {
+        padding: 2px;
+        box-shadow: none;
+    }
+    
+    /* 优化菜单栏 */
+    .menu-bar {
+        overflow-x: auto;
+        white-space: nowrap;
+        padding: 3px 0;
+        justify-content: flex-start;
+        -webkit-overflow-scrolling: touch; /* 提高iOS滚动体验 */
+    }
+    
+    .menu-item {
+        padding: 0 8px;
+        font-size: 9px;
+        min-width: auto;
+    }
+    
+    /* 添加向右箭头提示可滚动 */
+    .menu-bar::after {
+        content: "→";
+        position: absolute;
+        right: 5px;
+        top: 5px;
+        font-size: 12px;
+        color: #666;
+        pointer-events: none;
+        animation: pulse 1.5s infinite;
+        opacity: 0.7;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 0.4; }
+        50% { opacity: 0.9; }
+        100% { opacity: 0.4; }
+    }
+    
+    h1 {
+        font-size: 14px;
+    }
+    
+    /* 调整工具栏布局为垂直流动式布局 */
+    .toolbar {
+        padding: 5px;
+        display: flex;
+        flex-direction: column;
+        overflow-y: visible;
+        max-height: none;
+    }
+    
+    /* 功能区域优化排序，使Pixelate保持在顶部 */
+    .toolbar .tool-group:nth-child(1) {
+        order: 1; /* Pixelate保持在顶部 */
+    }
+    
+    .toolbar .tool-group:nth-child(2) {
+        order: 2; /* Brushes */
+    }
+    
+    .toolbar .tool-group:nth-child(3) {
+        order: 3; /* Tools */
+    }
+    
+    .toolbar .tool-group:nth-child(4) {
+        order: 4; /* Colors */
+    }
+    
+    .toolbar .tool-group:nth-child(5) {
+        order: 5; /* History */
+    }
+    
+    .tool-group {
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+    }
+    
+    .tool-group-title {
+        font-size: 11px;
+        margin-bottom: 5px;
+    }
+    
+    /* 确保工具按钮在手机上更容易点击 */
+    .tool {
+        width: 40px;
+        height: 40px;
+        margin: 3px;
+        font-size: 14px;
+    }
+    
+    /* 颜色选择器更紧凑 */
+    .color {
+        width: 25px;
+        height: 25px;
+        margin: 3px;
+    }
+    
+    /* 优化滑块在手机上的使用体验 */
+    .pixel-slider {
+        height: 6px;
+    }
+    
+    .pixel-slider::-webkit-slider-thumb {
+        width: 20px;
+        height: 20px;
+    }
+    
+    /* 调整画布区域 */
+    .canvas-area {
+        min-height: 0;
+    }
+    
+    .canvas-controls {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .zoom-button, .export-button {
+        width: 35px;
+        height: 35px;
+        font-size: 14px;
+    }
+    
+    .upload-button {
+        margin: 5px;
+        padding: 8px 12px;
+        font-size: 11px;
+    }
+    
+    /* 贴纸区域优化 */
+    .sticker-library {
+        height: 200px;
+    }
+    
+    .sticker-tab {
+        padding: 5px 8px;
+        font-size: 9px;
+    }
+    
+    .sticker {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 320px) {
+    .tool {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .color {
+        width: 22px;
+        height: 22px;
+        margin: 2px;
+    }
+    
+    .sticker-library {
+        height: 180px;
+    }
+}
+
 /* 动画效果 */
 @keyframes mac-click {
     0% { transform: scale(1); }
@@ -555,4 +769,62 @@ header.closing {
 @keyframes mac-close {
     0% { transform: scale(1); opacity: 1; }
     100% { transform: scale(0.9); opacity: 0; }
+}
+
+/* 移动设备提示样式 */
+.mobile-hint {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.mobile-hint-content {
+    background-color: #ffffff;
+    border: 3px solid #000000;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    max-width: 300px;
+    width: 80%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.mobile-hint-content p {
+    margin: 10px 0;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.mobile-hint-content p:first-child {
+    font-weight: bold;
+    color: #ff5252;
+}
+
+.mobile-hint-close {
+    background-color: #0095ff;
+    border: none;
+    color: white;
+    padding: 8px 20px;
+    margin-top: 15px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.mobile-hint-close:hover {
+    background-color: #0077cc;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 } 

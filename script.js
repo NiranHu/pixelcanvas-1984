@@ -51,6 +51,52 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // MAC OS style menu interactions
             this.setupMacOSInteractions();
+            
+            // 检测移动设备并显示提示
+            this.detectMobileDevice();
+        },
+        
+        // 检测移动设备
+        detectMobileDevice: function() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // 创建移动提示元素
+                const mobileHint = document.createElement('div');
+                mobileHint.className = 'mobile-hint';
+                mobileHint.innerHTML = `
+                    <div class="mobile-hint-content">
+                        <p>检测到移动设备</p>
+                        <p>提示: 横屏操作体验更佳</p>
+                        <button class="mobile-hint-close">了解</button>
+                    </div>
+                `;
+                
+                document.body.appendChild(mobileHint);
+                
+                // 添加关闭按钮事件
+                const closeButton = mobileHint.querySelector('.mobile-hint-close');
+                closeButton.addEventListener('click', () => {
+                    mobileHint.style.display = 'none';
+                    
+                    // 保存到本地存储，避免再次显示
+                    try {
+                        localStorage.setItem('pixelCanvasMobileHintShown', 'true');
+                    } catch (e) {
+                        console.log('无法保存设置');
+                    }
+                });
+                
+                // 检查是否已显示过
+                try {
+                    const hintShown = localStorage.getItem('pixelCanvasMobileHintShown');
+                    if (hintShown === 'true') {
+                        mobileHint.style.display = 'none';
+                    }
+                } catch (e) {
+                    console.log('无法读取设置');
+                }
+            }
         },
         
         // Adjust canvas size to match container dimensions
